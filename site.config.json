@@ -1,0 +1,44 @@
+{
+  "windows": [
+    {
+      "slot": "hat",
+      "category": "hat",
+      "label": "Головные уборы"
+    },
+    {
+      "slot": "shirt",
+      "category": "shirt",
+      "label": "Футболки"
+    },
+    {
+      "slot": "longsleeve",
+      "category": "longsleeve",
+      "label": "Лонгсливы"
+    },
+    {
+      "slot": "jacket",
+      "category": "jacket",
+      "label": "Куртки"
+    },
+    {
+      "slot": "pants",
+      "category": "pants",
+      "label": "Брюки"
+    },
+    {
+      "slot": "belt",
+      "category": "belt",
+      "label": "Ремни"
+    },
+    {
+      "slot": "bag",
+      "category": "bag",
+      "label": "Сумки"
+    },
+    {
+      "slot": "shoes",
+      "category": "shoes",
+      "label": "Обувь"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+/* МЕНЯЙ ФОН ЗДЕСЬ. Фон общий, у окон подложек нет. */
+:root {
+  --background-color: #ffffff;
+  --background-image: url('./backgrounds/background.jpg');
+  --background-size: cover;
+  --background-repeat: no-repeat;
+
+  /* Для окон совсем без рамки: --window-border: 0; */
+  --window-border: 1px solid rgba(0, 0, 0, 0.12);
+  --focus-color: #3157d5;
+}
+
+/* Фон-картинка: загрузи файл в backgrounds и замени none выше на:
+   url('./backgrounds/background.jpg')
+
+   Градиент: замени none выше на:
+   linear-gradient(135deg, #fff1df, #dce9ff)
+*/
