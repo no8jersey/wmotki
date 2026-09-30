@@ -45,10 +45,16 @@ def build():
     if output.exists():
         shutil.rmtree(output)
     output.mkdir()
-    for name in ['index.html', 'styles.css', 'theme.css', 'script.js', 'gallery-data.js', '.nojekyll']:
+    for name in ['index.html', 'styles.css', 'theme.css', 'script.js', 'gallery-data.js']:
         shutil.copy2(ROOT / name, output / name)
+    # Служебный файл создаем сами: пустой файл мог не попасть в загрузку GitHub.
+    (output / '.nojekyll').touch()
     for name in ['images', 'backgrounds']:
-        shutil.copytree(ROOT / name, output / name)
+        source = ROOT / name
+        if source.is_dir():
+            shutil.copytree(source, output / name)
+        else:
+            (output / name).mkdir()
     print(f'Готово: {len(data)} окон, {sum(len(w["images"]) for w in data)} изображений.')
 
 
