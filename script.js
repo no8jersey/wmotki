@@ -5,8 +5,7 @@ const outfit = document.querySelector('#outfit');
 const outfitCanvas = document.querySelector('#outfit-canvas');
 const outfitStatus = document.querySelector('#outfit-status');
 const variantNames = ['Все три верха', 'Рубашка', 'Рубашка с футболкой', 'Рубашка с курткой'];
-let outfitVariant = 0;
-let initializingSliders = true;
+let outfitVariant = -1;
 let outfitRequest = 0;
 const assetCache = new Map();
 
@@ -79,7 +78,7 @@ function loadOutfitAsset(src) {
 }
 
 async function renderOutfit() {
-  if (initializingSliders) return;
+  if (outfitVariant < 0) return;
   const token = ++outfitRequest;
   const variant = outfitVariant;
   const snapshot = new Map(selectedItems);
@@ -119,8 +118,6 @@ async function renderOutfit() {
 }
 
 composeButton.disabled = !(window.GALLERY_DATA || []).some(config => config.images.length);
-composeButton.setAttribute('aria-label', 'Следующий вариант образа');
-composeButton.title = 'Следующий вариант образа';
 composeButton.addEventListener('click', () => {
   outfitVariant = (outfitVariant + 1) % 4;
   composeButton.setAttribute('aria-label', 'Следующий вариант образа');
@@ -218,10 +215,6 @@ for (const config of window.GALLERY_DATA || []) {
   });
   slider.addEventListener('lostpointercapture', () => { gesture = null; });
   gallery.append(slider);
-  if (images.length) show(Math.floor(Math.random() * images.length));
+  if (images.length) show(0);
   else status.textContent = `${config.label}: пока нет изображений`;
 }
-
-// Все случайные начальные кадры выбраны: собираем первый вид один раз.
-initializingSliders = false;
-renderOutfit();

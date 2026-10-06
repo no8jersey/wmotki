@@ -10,6 +10,19 @@
   <script src="./script.js" defer></script>
 </head>
 <body>
-  <main id="gallery" class="gallery" aria-label="Коллекция изображений"></main>
+  <main class="workspace" aria-label="Подбор одежды">
+    <div id="gallery" class="gallery" aria-label="Коллекция изображений"></div>
+    <button id="compose" class="compose" type="button"
+      aria-label="Собрать образ" title="Собрать образ; повторное нажатие — следующий вариант"
+      aria-controls="outfit">
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false">
+        <path d="M5 16h22M18 7l9 9-9 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <section id="outfit" class="outfit" aria-label="Собранный образ" aria-busy="false">
+      <canvas id="outfit-canvas" width="900" height="1400" role="img" aria-label="Собранный образ" hidden></canvas>
+      <span id="outfit-status" class="sr-only" role="status" aria-live="polite"></span>
+    </section>
+  </main>
 </body>
 </html>
