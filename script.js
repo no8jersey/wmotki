@@ -5,7 +5,8 @@ const outfit = document.querySelector('#outfit');
 const outfitCanvas = document.querySelector('#outfit-canvas');
 const outfitStatus = document.querySelector('#outfit-status');
 const variantNames = ['Все три верха', 'Рубашка', 'Рубашка с футболкой', 'Рубашка с курткой'];
-let outfitVariant = -1;
+let outfitVariant = 0;
+let initializingSliders = true;
 let outfitRequest = 0;
 const assetCache = new Map();
 
@@ -78,7 +79,7 @@ function loadOutfitAsset(src) {
 }
 
 async function renderOutfit() {
-  if (outfitVariant < 0) return;
+  if (initializingSliders) return;
   const token = ++outfitRequest;
   const variant = outfitVariant;
   const snapshot = new Map(selectedItems);
@@ -118,6 +119,8 @@ async function renderOutfit() {
 }
 
 composeButton.disabled = !(window.GALLERY_DATA || []).some(config => config.images.length);
+composeButton.setAttribute('aria-label', 'Следующий вариант образа');
+composeButton.title = 'Следующий вариант образа';
 composeButton.addEventListener('click', () => {
   outfitVariant = (outfitVariant + 1) % 4;
   composeButton.setAttribute('aria-label', 'Следующий вариант образа');
@@ -127,9 +130,12 @@ composeButton.addEventListener('click', () => {
 // gallery-data.js создается автоматически из папок при публикации.
 const gallery = document.querySelector('#gallery');
 for (const config of window.GALLERY_DATA || []) {
+  const cell = document.createElement('div');
+  cell.className = 'slider-cell';
+  cell.style.gridArea = config.slot;
   const slider = document.createElement('section');
   slider.className = 'slider';
-  slider.style.gridArea = config.slot;
+  slider.id = `slider-${config.slot}`;
   slider.tabIndex = 0;
   slider.setAttribute('aria-label', config.label);
   slider.setAttribute('aria-roledescription', 'карусель');
@@ -144,12 +150,14 @@ for (const config of window.GALLERY_DATA || []) {
   status.setAttribute('aria-atomic', 'true');
   slider.append(image, status);
   const images = config.images;
+  const navigationButtons = [];
+  let isHidden = false;
   let current = 0;
   let gesture = null;
   let suppressClickUntil = 0;
   let request = 0;
   function show(index) {
-    if (!images.length) return;
+    if (!images.length || isHidden) return;
     current = (index + images.length) % images.length;
     const item = images[current];
     selectedItems.set(config.slot, item);
@@ -185,8 +193,34 @@ for (const config of window.GALLERY_DATA || []) {
       if (event.detail !== 0 && performance.now() < suppressClickUntil) return;
       show(current + direction);
     });
+    navigationButtons.push(button);
     slider.append(button);
   }
+  const visibilityToggle = document.createElement('button');
+  visibilityToggle.type = 'button';
+  visibilityToggle.className = 'visibility-toggle';
+  visibilityToggle.textContent = 'скрыть';
+  visibilityToggle.setAttribute('aria-label', `Скрыть: ${config.label}`);
+  visibilityToggle.setAttribute('aria-controls', slider.id);
+  visibilityToggle.disabled = images.length === 0;
+  visibilityToggle.addEventListener('click', () => {
+    isHidden = !isHidden;
+    request++; // Отменяем показ кадра, если его загрузка еще не закончилась.
+    gesture = null;
+    slider.dataset.hidden = String(isHidden);
+    slider.tabIndex = isHidden ? -1 : 0;
+    visibilityToggle.textContent = isHidden ? 'показать' : 'скрыть';
+    visibilityToggle.setAttribute('aria-label', `${isHidden ? 'Показать' : 'Скрыть'}: ${config.label}`);
+    navigationButtons.forEach(button => { button.disabled = isHidden || images.length < 2; });
+    if (isHidden) {
+      image.hidden = true;
+      selectedItems.delete(config.slot);
+      status.textContent = `${config.label}: скрыто`;
+      renderOutfit();
+    } else {
+      show(current); // Возвращаем прежнюю вещь, не выбираем новую случайную.
+    }
+  });
   slider.addEventListener('keydown', event => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
@@ -195,7 +229,7 @@ for (const config of window.GALLERY_DATA || []) {
     }
   });
   slider.addEventListener('pointerdown', event => {
-    if (!event.isPrimary || event.button !== 0 || images.length < 2) return;
+    if (isHidden || !event.isPrimary || event.button !== 0 || images.length < 2) return;
     gesture = { id: event.pointerId, x: event.clientX, y: event.clientY };
     event.target.setPointerCapture(event.pointerId);
   });
@@ -214,7 +248,12 @@ for (const config of window.GALLERY_DATA || []) {
     suppressClickUntil = performance.now() + 500;
   });
   slider.addEventListener('lostpointercapture', () => { gesture = null; });
-  gallery.append(slider);
-  if (images.length) show(0);
+  cell.append(slider, visibilityToggle);
+  gallery.append(cell);
+  if (images.length) show(Math.floor(Math.random() * images.length));
   else status.textContent = `${config.label}: пока нет изображений`;
 }
+
+// Все случайные начальные кадры выбраны: собираем первый вид один раз.
+initializingSliders = false;
+renderOutfit();
