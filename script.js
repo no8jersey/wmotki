@@ -1,10 +1,115 @@
+// Переводы интерфейса. Выбранный язык сохраняется в этом браузере.
+const translations = {
+  ru: {
+    hide: 'скрыть', show: 'показать', hidden: 'скрыто', carousel: 'карусель',
+    previous: 'Предыдущее изображение', next: 'Следующее изображение',
+    unavailable: 'Изображение недоступно. Можно перейти к следующему.', empty: 'пока нет изображений', of: 'из',
+    workspace: 'Подбор одежды', gallery: 'Коллекция изображений', outfit: 'Собранный образ', language: 'Язык сайта',
+    nextView: 'Следующий вариант образа', partial: 'Часть изображений не загрузилась.', noOutfit: 'Нет доступных изображений для этого варианта.',
+    variants: ['Все три верха', 'Лонгслив', 'Лонгслив с футболкой', 'Лонгслив с курткой'],
+    slots: {hat:'Головные уборы', shirt:'Футболки', longsleeve:'Лонгсливы', jacket:'Куртки', pants:'Брюки', belt:'Ремни', bag:'Сумки', shoes:'Обувь'},
+    play: 'Включить трек', stop: 'Остановить музыку', musicError: 'Не удалось включить музыку. Проверь MP3-файл или попробуй ещё раз.'
+  },
+  en: {
+    hide: 'hide', show: 'show', hidden: 'hidden', carousel: 'carousel',
+    previous: 'Previous image', next: 'Next image', unavailable: 'Image unavailable. Try the next one.', empty: 'no images yet', of: 'of',
+    workspace: 'Outfit builder', gallery: 'Image collection', outfit: 'Outfit', language: 'Site language',
+    nextView: 'Next layout', partial: 'Some images could not be loaded.', noOutfit: 'No images available for this layout.',
+    variants: ['All three tops', 'Long-sleeved top', 'Long-sleeved top and T-shirt', 'Long-sleeved top and jacket'],
+    slots: {hat:'Hats', shirt:'T-shirts', longsleeve:'Long-sleeved tops', jacket:'Jackets', pants:'Trousers', belt:'Belts', bag:'Bags', shoes:'Shoes'},
+    play: 'Play track', stop: 'Stop music', musicError: 'Could not play music. Check the MP3 file or try again.'
+  },
+  sr: {
+    hide: 'sakrij', show: 'prikaži', hidden: 'sakriveno', carousel: 'galerija',
+    previous: 'Prethodna slika', next: 'Sledeća slika', unavailable: 'Slika nije dostupna. Probaj sledeću.', empty: 'još nema slika', of: 'od',
+    workspace: 'Kombinovanje odeće', gallery: 'Kolekcija slika', outfit: 'Odevna kombinacija', language: 'Jezik sajta',
+    nextView: 'Sledeći raspored', partial: 'Neke slike nisu učitane.', noOutfit: 'Nema dostupnih slika za ovaj raspored.',
+    variants: ['Sva tri gornja dela', 'Majica dugih rukava', 'Majica dugih rukava i majica kratkih rukava', 'Majica dugih rukava i jakna'],
+    slots: {hat:'Kape', shirt:'Majice kratkih rukava', longsleeve:'Majice dugih rukava', jacket:'Jakne', pants:'Pantalone', belt:'Kaiševi', bag:'Torbe', shoes:'Obuća'},
+    play: 'Pusti pesmu', stop: 'Zaustavi muziku', musicError: 'Muzika ne može da se pusti. Proveri MP3 datoteku ili pokušaj ponovo.'
+  }
+};
+let language = 'ru';
+try { const saved = localStorage.getItem('wmotki-language'); if (Object.hasOwn(translations, saved)) language = saved; } catch {}
+const t = key => translations[language][key];
+const sliderTranslators = [];
+
+// Один общий шанс на вход, затем отдельный бросок для каждой необязательной вещи.
+const initialHideChance = [0.2, 0.5, 0.8][Math.floor(Math.random() * 3)];
+const initiallyHidden = new Set(['hat', 'jacket', 'bag', 'belt'].filter(() => Math.random() < initialHideChance));
+const availableTop = slot => (window.GALLERY_DATA || []).some(c => c.slot === slot && c.images.length);
+if (availableTop('shirt') && availableTop('longsleeve') && Math.random() < initialHideChance) {
+  initiallyHidden.add(Math.random() < 0.5 ? 'shirt' : 'longsleeve');
+}
+
+// Файлы запрашиваются только после клика. Нет автозапуска и перехода по окончании.
+const musicTracks = ['./music/1.mp3', './music/2.mp3', './music/3.mp3'];
+const musicButton = document.querySelector('#music-toggle');
+const musicStatus = document.querySelector('#music-status');
+let nextTrack = 0;
+let musicAudio = null;
+let musicState = 'idle';
+let musicError = false;
+let musicRequest = 0;
+function updateMusicUI() {
+  const active = musicState !== 'idle';
+  const label = active ? t('stop') : `${t('play')} ${nextTrack + 1}`;
+  musicButton.title = label;
+  musicButton.setAttribute('aria-label', label);
+  musicButton.setAttribute('aria-pressed', String(active));
+  musicButton.dataset.state = musicState;
+  musicButton.querySelector('.play-icon').toggleAttribute('hidden', active);
+  musicButton.querySelector('.stop-icon').toggleAttribute('hidden', !active);
+  musicStatus.hidden = !musicError;
+  musicStatus.textContent = musicError ? t('musicError') : '';
+}
+function stopMusic(advance = true) {
+  musicRequest++;
+  if (musicAudio) {
+    musicAudio.onended = null;
+    musicAudio.onerror = null;
+    musicAudio.pause();
+    musicAudio.removeAttribute('src');
+    musicAudio.load();
+    musicAudio = null;
+  }
+  if (advance) nextTrack = (nextTrack + 1) % musicTracks.length;
+  musicState = 'idle';
+  updateMusicUI();
+}
+musicButton.addEventListener('click', async () => {
+  if (musicState !== 'idle') { stopMusic(); return; }
+  const token = ++musicRequest;
+  const audio = new Audio();
+  musicAudio = audio;
+  audio.preload = 'none';
+  audio.volume = 0.3;
+  audio.src = musicTracks[nextTrack];
+  musicError = false;
+  musicState = 'loading';
+  updateMusicUI();
+  const fail = () => {
+    if (token !== musicRequest) return;
+    musicError = true;
+    stopMusic(false); // Ошибка не пропускает трек: следующий клик повторяет попытку.
+  };
+  audio.onerror = fail;
+  audio.onended = () => { if (token === musicRequest) stopMusic(); };
+  try {
+    await audio.play();
+    if (token !== musicRequest) return;
+    musicState = 'playing';
+    updateMusicUI();
+  } catch { fail(); }
+});
+
 // Коллаж собирается из выбранных кадров; роли определяются местом окна (slot).
 const selectedItems = new Map();
 const composeButton = document.querySelector('#compose');
 const outfit = document.querySelector('#outfit');
 const outfitCanvas = document.querySelector('#outfit-canvas');
 const outfitStatus = document.querySelector('#outfit-status');
-const variantNames = ['Все три верха', 'Рубашка', 'Рубашка с футболкой', 'Рубашка с курткой'];
+
 let outfitVariant = 0;
 let initializingSliders = true;
 let outfitRequest = 0;
@@ -25,8 +130,10 @@ function outfitLayers(variant) {
       ['jacket', 375, 230, 470, 480],
     );
   } else {
-    layers.push(['longsleeve', 245, 250, 440, 460]);
-    if (variant === 2) layers.push(['shirt', 255, 245, 430, 420]);
+    // Если лонгслив скрыт, сохраняем выбранную футболку в одиночных видах.
+    const baseTop = selectedItems.has('longsleeve') ? 'longsleeve' : 'shirt';
+    layers.push([baseTop, 245, 250, 440, 460]);
+    if (variant === 2 && baseTop !== 'shirt') layers.push(['shirt', 255, 245, 430, 420]);
     if (variant === 3) layers.push(['jacket', 230, 240, 470, 465]);
   }
   layers.push(['hat', 315, 65, 270, 175], ['bag', 555, 550, 275, 300]);
@@ -110,20 +217,20 @@ async function renderOutfit() {
   target.clearRect(0, 0, outfitCanvas.width, outfitCanvas.height);
   target.drawImage(frame, 0, 0);
   outfitCanvas.hidden = drawn === 0;
-  outfitCanvas.setAttribute('aria-label', variantNames[variant]);
+  outfitCanvas.setAttribute('aria-label', t('variants')[variant]);
   outfitCanvas.dataset.variant = String(variant + 1);
   outfit.setAttribute('aria-busy', 'false');
   const partial = assets.some(item => item.failed);
-  outfitStatus.textContent = drawn ? `Вариант ${variant + 1} из 4: ${variantNames[variant]}.${partial ? ' Часть изображений не загрузилась.' : ''}` : 'Нет доступных изображений для этого варианта.';
-  composeButton.title = `${variantNames[variant]}. Нажми для следующего варианта.${partial ? ' Часть изображений не загрузилась.' : ''}`;
+  outfitStatus.textContent = drawn ? `${variant + 1} / 4: ${t('variants')[variant]}. ${partial ? t('partial') : ''}` : t('noOutfit');
+  composeButton.title = `${t('variants')[variant]}. ${t('nextView')}. ${partial ? t('partial') : ''}`;
 }
 
 composeButton.disabled = !(window.GALLERY_DATA || []).some(config => config.images.length);
-composeButton.setAttribute('aria-label', 'Следующий вариант образа');
-composeButton.title = 'Следующий вариант образа';
+composeButton.setAttribute('aria-label', t('nextView'));
+composeButton.title = t('nextView');
 composeButton.addEventListener('click', () => {
   outfitVariant = (outfitVariant + 1) % 4;
-  composeButton.setAttribute('aria-label', 'Следующий вариант образа');
+  composeButton.setAttribute('aria-label', t('nextView'));
   renderOutfit();
 });
 
@@ -137,8 +244,9 @@ for (const config of window.GALLERY_DATA || []) {
   slider.className = 'slider';
   slider.id = `slider-${config.slot}`;
   slider.tabIndex = 0;
-  slider.setAttribute('aria-label', config.label);
-  slider.setAttribute('aria-roledescription', 'карусель');
+  const categoryLabel = () => t('slots')[config.slot] || config.label;
+  slider.setAttribute('aria-label', categoryLabel());
+  slider.setAttribute('aria-roledescription', t('carousel'));
   const image = document.createElement('img');
   image.className = 'slide-image';
   image.alt = '';
@@ -151,11 +259,20 @@ for (const config of window.GALLERY_DATA || []) {
   slider.append(image, status);
   const images = config.images;
   const navigationButtons = [];
-  let isHidden = false;
+  let isHidden = initiallyHidden.has(config.slot);
   let current = 0;
   let gesture = null;
   let suppressClickUntil = 0;
   let request = 0;
+  let imageFailed = false;
+  function refreshSliderText() {
+    slider.setAttribute('aria-label', categoryLabel());
+    slider.setAttribute('aria-roledescription', t('carousel'));
+    visibilityToggle.textContent = t(isHidden ? 'show' : 'hide');
+    visibilityToggle.setAttribute('aria-label', `${t(isHidden ? 'show' : 'hide')}: ${categoryLabel()}`);
+    navigationButtons.forEach((button, i) => button.setAttribute('aria-label', `${categoryLabel()}: ${t(i ? 'next' : 'previous')}`));
+    status.textContent = `${categoryLabel()}: ${!images.length ? t('empty') : isHidden ? t('hidden') : imageFailed ? t('unavailable') : `${current + 1} ${t('of')} ${images.length}`}`;
+  }
   function show(index) {
     if (!images.length || isHidden) return;
     current = (index + images.length) % images.length;
@@ -163,6 +280,7 @@ for (const config of window.GALLERY_DATA || []) {
     selectedItems.set(config.slot, item);
     renderOutfit();
     const token = ++request;
+    imageFailed = false;
     image.hidden = true;
     // Быстрые нажатия не должны возвращать устаревший кадр.
     const loader = new Image();
@@ -170,12 +288,13 @@ for (const config of window.GALLERY_DATA || []) {
       if (token !== request) return;
       image.src = item.src;
       image.hidden = false;
-      status.textContent = `${config.label}: ${current + 1} из ${images.length}`;
+      refreshSliderText();
     };
     loader.onerror = () => {
       if (token !== request) return;
       image.hidden = true;
-      status.textContent = 'Изображение недоступно. Можно перейти к следующему.';
+      imageFailed = true;
+      refreshSliderText();
       console.warn('Не удалось загрузить изображение:', item.src);
     };
     loader.src = item.src;
@@ -199,8 +318,8 @@ for (const config of window.GALLERY_DATA || []) {
   const visibilityToggle = document.createElement('button');
   visibilityToggle.type = 'button';
   visibilityToggle.className = 'visibility-toggle';
-  visibilityToggle.textContent = 'скрыть';
-  visibilityToggle.setAttribute('aria-label', `Скрыть: ${config.label}`);
+  visibilityToggle.textContent = t(isHidden ? 'show' : 'hide');
+  visibilityToggle.setAttribute('aria-label', `${t(isHidden ? 'show' : 'hide')}: ${categoryLabel()}`);
   visibilityToggle.setAttribute('aria-controls', slider.id);
   visibilityToggle.disabled = images.length === 0;
   visibilityToggle.addEventListener('click', () => {
@@ -209,13 +328,12 @@ for (const config of window.GALLERY_DATA || []) {
     gesture = null;
     slider.dataset.hidden = String(isHidden);
     slider.tabIndex = isHidden ? -1 : 0;
-    visibilityToggle.textContent = isHidden ? 'показать' : 'скрыть';
-    visibilityToggle.setAttribute('aria-label', `${isHidden ? 'Показать' : 'Скрыть'}: ${config.label}`);
+    refreshSliderText();
     navigationButtons.forEach(button => { button.disabled = isHidden || images.length < 2; });
     if (isHidden) {
       image.hidden = true;
       selectedItems.delete(config.slot);
-      status.textContent = `${config.label}: скрыто`;
+      refreshSliderText();
       renderOutfit();
     } else {
       show(current); // Возвращаем прежнюю вещь, не выбираем новую случайную.
@@ -250,10 +368,33 @@ for (const config of window.GALLERY_DATA || []) {
   slider.addEventListener('lostpointercapture', () => { gesture = null; });
   cell.append(slider, visibilityToggle);
   gallery.append(cell);
-  if (images.length) show(Math.floor(Math.random() * images.length));
-  else status.textContent = `${config.label}: пока нет изображений`;
+  current = images.length ? Math.floor(Math.random() * images.length) : 0;
+  slider.dataset.hidden = String(isHidden);
+  slider.tabIndex = isHidden ? -1 : 0;
+  navigationButtons.forEach(button => { button.disabled = isHidden || images.length < 2; });
+  sliderTranslators.push(refreshSliderText);
+  refreshSliderText();
+  if (images.length && !isHidden) show(current);
 }
 
 // Все случайные начальные кадры выбраны: собираем первый вид один раз.
 initializingSliders = false;
-renderOutfit();
+
+function applyLanguage() {
+  document.documentElement.lang = language === 'sr' ? 'sr-Latn' : language;
+  document.querySelector('#language').value = language;
+  document.querySelector('#language').setAttribute('aria-label', t('language'));
+  document.querySelector('.workspace').setAttribute('aria-label', t('workspace'));
+  gallery.setAttribute('aria-label', t('gallery'));
+  outfit.setAttribute('aria-label', t('outfit'));
+  composeButton.setAttribute('aria-label', t('nextView'));
+  sliderTranslators.forEach(refresh => refresh());
+  updateMusicUI();
+  renderOutfit();
+}
+document.querySelector('#language').addEventListener('change', event => {
+  language = event.target.value;
+  try { localStorage.setItem('wmotki-language', language); } catch {}
+  applyLanguage();
+});
+applyLanguage();

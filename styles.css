@@ -7,7 +7,7 @@ body {
   min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: 24px 11px;
+  padding: 64px 11px 24px;
   background-color: var(--background-color);
   background-image: var(--background-image);
   background-size: var(--background-size);
@@ -147,3 +147,10 @@ body {
   .slide-image { animation: none; }
   .hit-area::after { transition: none; }
 }
+
+.site-controls { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; align-items: center; gap: 10px; z-index: 2; font: 12px/1.4 Arial, sans-serif; }
+#music-toggle, #language { border: 0; border-radius: 4px; background: rgba(255,255,255,.8); color: #222; min-height: 32px; }
+#music-toggle { width: 32px; display: grid; place-items: center; cursor: pointer; padding: 0; }
+#language { padding: 4px 6px; cursor: pointer; }
+#music-toggle:focus-visible, #language:focus-visible { outline: 2px solid var(--focus-color, #3157d5); outline-offset: 2px; }
+#music-status { padding: 4px 6px; background: rgba(255,255,255,.9); border-radius: 4px; }

@@ -49,7 +49,7 @@ def build():
         shutil.copy2(ROOT / name, output / name)
     # Служебный файл создаем сами: пустой файл мог не попасть в загрузку GitHub.
     (output / '.nojekyll').touch()
-    for name in ['images', 'backgrounds']:
+    for name in ['images', 'backgrounds', 'music']:
         source = ROOT / name
         if source.is_dir():
             shutil.copytree(source, output / name)

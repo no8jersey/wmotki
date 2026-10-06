@@ -10,6 +10,16 @@
   <script src="./script.js" defer></script>
 </head>
 <body>
+  <header class="site-controls">
+    <button id="music-toggle" type="button" aria-label="Включить музыку" title="Включить музыку" aria-pressed="false">
+      <svg class="play-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="m8 5 11 7-11 7z" fill="currentColor"/></svg>
+      <svg class="stop-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" hidden><path d="M6 6h12v12H6z" fill="currentColor"/></svg>
+    </button>
+    <select id="language" aria-label="Язык сайта">
+      <option value="en">English</option><option value="sr">Srpski</option><option value="ru" selected>Русский</option>
+    </select>
+    <span id="music-status" role="status" hidden></span>
+  </header>
   <main class="workspace" aria-label="Подбор одежды">
     <div id="gallery" class="gallery" aria-label="Коллекция изображений"></div>
     <button id="compose" class="compose" type="button"
