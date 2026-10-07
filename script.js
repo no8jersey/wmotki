@@ -29,7 +29,7 @@ const translations = {
     play: 'Pusti pesmu', stop: 'Zaustavi muziku', musicError: 'Muzika ne može da se pusti. Proveri MP3 datoteku ili pokušaj ponovo.'
   }
 };
-let language = 'ru';
+let language = 'en';
 try { const saved = localStorage.getItem('wmotki-language'); if (Object.hasOwn(translations, saved)) language = saved; } catch {}
 const t = key => translations[language][key];
 const sliderTranslators = [];
