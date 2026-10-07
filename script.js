@@ -84,6 +84,7 @@ musicButton.addEventListener('click', async () => {
   musicAudio = audio;
   audio.preload = 'none';
   audio.volume = 0.3;
+  audio.loop = true;
   audio.src = musicTracks[nextTrack];
   musicError = false;
   musicState = 'loading';
@@ -94,7 +95,7 @@ musicButton.addEventListener('click', async () => {
     stopMusic(false); // Ошибка не пропускает трек: следующий клик повторяет попытку.
   };
   audio.onerror = fail;
-  audio.onended = () => { if (token === musicRequest) stopMusic(); };
+ // audio.onended = () => { if (token === musicRequest) stopMusic(); };
   try {
     await audio.play();
     if (token !== musicRequest) return;
